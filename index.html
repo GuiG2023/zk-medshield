@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 <head>
 <meta charset="UTF-8" />
 <title>ZK-MedShield</title>
@@ -34,6 +34,12 @@
     border-radius: 14px;
     padding: 32px;
   }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
   .badge {
     display: inline-flex;
     align-items: center;
@@ -45,9 +51,23 @@
     border: 1px solid var(--accent);
     border-radius: 999px;
     padding: 3px 10px;
-    margin-bottom: 16px;
   }
   .badge::before { content: "●"; font-size: 8px; }
+  .lang-selector select {
+    background: #0b0f0e;
+    border: 1px solid var(--line);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    outline: none;
+    cursor: pointer;
+  }
+  .lang-selector select:focus {
+    border-color: var(--accent);
+    color: var(--text);
+  }
   h1 {
     margin: 0 0 4px;
     font-size: 22px;
@@ -132,13 +152,23 @@
 </head>
 <body>
   <div class="card">
-    <span class="badge">ZK VERIFIED</span>
-    <h1>ZK-MedShield</h1>
-    <p class="sub">输入空腹血糖值(mg/dL)。原始数值只在本地处理,离开这台电脑的只有经零知识证明验证过的风险结论。</p>
+    <div class="card-header">
+      <span class="badge" id="zkBadge" data-key="badge">ZK VERIFIED</span>
+      <div class="lang-selector">
+        <select id="langSelect" onchange="changeLanguage(this.value)">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="zh">中文</option>
+        </select>
+      </div>
+    </div>
+    
+    <h1 id="appTitle" data-key="title">ZK-MedShield</h1>
+    <p class="sub" id="appSub" data-key="subtitle">Enter fasting blood glucose (mg/dL). The raw value is only processed locally. Only the ZK-verified risk conclusion leaves this computer.</p>
 
-    <label for="glucose">FASTING GLUCOSE (mg/dL)</label>
-    <input id="glucose" type="number" placeholder="例如 105" />
-    <button id="submitBtn" onclick="analyze()">生成结论 + 健康建议</button>
+    <label for="glucose" id="glucoseLabel" data-key="label">FASTING GLUCOSE (mg/dL)</label>
+    <input id="glucose" type="number" placeholder="e.g. 105" />
+    <button id="submitBtn" onclick="analyze()" data-key="submit_btn">Generate Conclusion + Health Advice</button>
 
     <div class="result" id="result">
       <div class="risk-row">
@@ -151,28 +181,118 @@
 
     <div class="privacy-note" id="errorNote" style="display:none; border-color: var(--danger); color: var(--danger);"></div>
 
-    <div class="privacy-note">
-      DATA FLOW: 本地脱敏 → 本地 ZK 电路生成证明(disclose 仅暴露布尔结论)→ 结论提交 Gemini API
+    <div class="privacy-note" id="privacyNote" data-key="privacy_note">
+      DATA FLOW: Local Redaction → Local ZK Circuit Proof Generation (disclose only exposes boolean conclusion) → Conclusion Submitted to Gemini API
     </div>
   </div>
 
 <script>
+// Local FastAPI server endpoint
 const API_URL = "http://localhost:8000/api/analyze-report";
+
+// Multi-language localization library
+const i18n = {
+  en: {
+    badge: "ZK VERIFIED",
+    title: "ZK-MedShield",
+    subtitle: "Enter fasting blood glucose (mg/dL). The raw value is only processed locally. Only the ZK-verified risk conclusion leaves this computer.",
+    label: "FASTING GLUCOSE (mg/dL)",
+    placeholder: "e.g. 105",
+    submit_btn: "Generate Conclusion + Health Advice",
+    loading_text: "Calculating (Generating local proof + Requesting Gemini)…",
+    risk_high: "HIGH RISK (>100 mg/dL)",
+    risk_normal: "NORMAL RANGE (70–100 mg/dL)",
+    meta_verified: "proof_verified",
+    meta_mode: "mode",
+    privacy_note: "DATA FLOW: Local Redaction → Local ZK Circuit Proof Generation (disclose only exposes boolean conclusion) → Conclusion Submitted to Gemini API",
+    err_prefix: "Request failed: ",
+    err_suffix: " (Check if uvicorn is running on localhost:8000)",
+    alert_invalid: "Please enter a valid number"
+  },
+  es: {
+    badge: "ZK VERIFICADO",
+    title: "ZK-MedShield",
+    subtitle: "Ingrese el nivel de glucosa en sangre en ayunas (mg/dL). El valor real solo se procesa localmente. Solo la conclusión de riesgo verificada por ZK sale de esta computadora.",
+    label: "GLUCOSA EN AYUNAS (mg/dL)",
+    placeholder: "p. ej. 105",
+    submit_btn: "Generar Conclusión + Consejo de Salud",
+    loading_text: "Calculando (Generando prueba local + Consultando a Gemini)…",
+    risk_high: "RIESGO ALTO (>100 mg/dL)",
+    risk_normal: "RANGO NORMAL (70–100 mg/dL)",
+    meta_verified: "prueba_verificada",
+    meta_mode: "modo",
+    privacy_note: "FLUJO DE DATOS: Redacción local → Generación de prueba local en circuito ZK (disclose solo expone conclusión booleana) → Conclusión enviada a la API de Gemini",
+    err_prefix: "Error en la solicitud: ",
+    err_suffix: " (Verifique si uvicorn se está ejecutando en el puerto localhost:8000)",
+    alert_invalid: "Por favor ingrese un número válido"
+  },
+  zh: {
+    badge: "ZK 已验证",
+    title: "ZK-MedShield",
+    subtitle: "输入空腹血糖值(mg/dL)。原始数值只在本地处理，离开这台电脑的只有经零知识证明验证过的风险结论。",
+    label: "空腹血糖 (mg/dL)",
+    placeholder: "例如 105",
+    submit_btn: "生成结论 + 健康建议",
+    loading_text: "计算中(本地生成结论 + 请求 Gemini)…",
+    risk_high: "高风险 (>100 mg/dL)",
+    risk_normal: "正常范围 (70–100 mg/dL)",
+    meta_verified: "证明已验证",
+    meta_mode: "模式",
+    privacy_note: "数据流: 本地脱敏 → 本地 ZK 电路生成证明(disclose 仅暴露布尔结论)→ 结论提交 Gemini API",
+    err_prefix: "请求失败: ",
+    err_suffix: " (确认 uvicorn 是否已在 localhost:8000 运行)",
+    alert_invalid: "请输入一个数字"
+  }
+};
+
+// Default language configuration
+let currentLang = "en";
+
+function changeLanguage(lang) {
+  currentLang = lang;
+  const dict = i18n[lang];
+  
+  // Update static texts
+  document.querySelectorAll("[data-key]").forEach(el => {
+    const key = el.getAttribute("data-key");
+    if (dict[key]) {
+      el.textContent = dict[key];
+    }
+  });
+
+  // Update badge dot character
+  const badge = document.getElementById("zkBadge");
+  badge.textContent = dict.badge;
+
+  // Update input placeholder
+  document.getElementById("glucose").placeholder = dict.placeholder;
+
+  // Reset or re-evaluate layout state if results are visible
+  const resultBox = document.getElementById("result");
+  if (resultBox.classList.contains("show")) {
+    const riskLabel = document.getElementById("riskLabel");
+    const isHigh = riskLabel.getAttribute("data-risk") === "true";
+    riskLabel.textContent = isHigh ? dict.risk_high : dict.risk_normal;
+  }
+}
 
 async function analyze() {
   const input = document.getElementById("glucose");
   const btn = document.getElementById("submitBtn");
   const resultBox = document.getElementById("result");
   const errorNote = document.getElementById("errorNote");
+  const dict = i18n[currentLang];
 
+  // Input validation
   const value = parseFloat(input.value);
   if (isNaN(value)) {
-    alert("请输入一个数字");
+    alert(dict.alert_invalid);
     return;
   }
 
+  // Set loading UI states
   btn.disabled = true;
-  btn.textContent = "计算中(本地生成结论 + 请求 Gemini)…";
+  btn.textContent = dict.loading_text;
   resultBox.classList.remove("show");
   errorNote.style.display = "none";
 
@@ -185,7 +305,7 @@ async function analyze() {
 
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`后端返回 ${res.status}: ${errText}`);
+      throw new Error(`Server returned ${res.status}: ${errText}`);
     }
 
     const data = await res.json();
@@ -195,30 +315,38 @@ async function analyze() {
     const advice = document.getElementById("advice");
     const meta = document.getElementById("meta");
 
+    // Render result components
     if (data.is_high_risk) {
       dot.className = "dot high";
-      riskLabel.textContent = "HIGH RISK (>100 mg/dL)";
+      riskLabel.textContent = dict.risk_high;
+      riskLabel.setAttribute("data-risk", "true");
     } else {
       dot.className = "dot ok";
-      riskLabel.textContent = "NORMAL RANGE (70–100 mg/dL)";
+      riskLabel.textContent = dict.risk_normal;
+      riskLabel.setAttribute("data-risk", "false");
     }
 
     advice.textContent = data.advice;
-    meta.textContent = `proof_verified: ${data.proof_verified} · mode: ${data.proof_mode}`;
+    meta.textContent = `${dict.meta_verified}: ${data.proof_verified} · ${dict.meta_mode}: ${data.proof_mode}`;
 
     resultBox.classList.add("show");
   } catch (err) {
-    errorNote.textContent = "请求失败:" + err.message + "(确认 uvicorn 是否已在 localhost:8000 运行)";
+    // Render error blocks with actionable debug tips
+    errorNote.textContent = dict.err_prefix + err.message + dict.err_suffix;
     errorNote.style.display = "block";
   } finally {
     btn.disabled = false;
-    btn.textContent = "生成结论 + 健康建议";
+    btn.textContent = dict.submit_btn;
   }
 }
 
+// Trigger analysis when Enter key is pressed inside the input
 document.getElementById("glucose").addEventListener("keydown", (e) => {
   if (e.key === "Enter") analyze();
 });
+
+// Initialize with default language
+changeLanguage(currentLang);
 </script>
 </body>
 </html>
