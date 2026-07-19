@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8" />
+<title>ZK-MedShield</title>
+<style>
+  :root {
+    --bg: #0b0f0e;
+    --panel: #121816;
+    --line: #24322e;
+    --text: #e7efe9;
+    --muted: #8aa398;
+    --accent: #3ddc97;
+    --danger: #ff6b6b;
+    --mono: "SF Mono", "Menlo", "Consolas", monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .card {
+    width: 100%;
+    max-width: 460px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 32px;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 999px;
+    padding: 3px 10px;
+    margin-bottom: 16px;
+  }
+  .badge::before { content: "●"; font-size: 8px; }
+  h1 {
+    margin: 0 0 4px;
+    font-size: 22px;
+    letter-spacing: -0.01em;
+  }
+  .sub {
+    color: var(--muted);
+    font-size: 13px;
+    margin: 0 0 28px;
+    line-height: 1.5;
+  }
+  label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 8px;
+    font-family: var(--mono);
+  }
+  input {
+    width: 100%;
+    background: #0b0f0e;
+    border: 1px solid var(--line);
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 18px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+  input:focus { outline: none; border-color: var(--accent); }
+  button {
+    width: 100%;
+    background: var(--accent);
+    color: #06120d;
+    border: none;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 13px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.5; cursor: default; }
+  .result {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    display: none;
+  }
+  .result.show { display: block; }
+  .risk-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot.ok { background: var(--accent); }
+  .dot.high { background: var(--danger); }
+  .risk-label { font-family: var(--mono); font-size: 14px; }
+  .advice {
+    font-size: 13.5px;
+    line-height: 1.7;
+    color: var(--text);
+    white-space: pre-wrap;
+  }
+  .meta {
+    margin-top: 16px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--muted);
+  }
+  .privacy-note {
+    margin-top: 28px;
+    font-size: 11px;
+    color: var(--muted);
+    font-family: var(--mono);
+    line-height: 1.6;
+    border-left: 2px solid var(--accent);
+    padding-left: 10px;
+  }
+</style>
+</head>
+<body>
+  <div class="card">
+    <span class="badge">ZK VERIFIED</span>
+    <h1>ZK-MedShield</h1>
+    <p class="sub">输入空腹血糖值(mg/dL)。原始数值只在本地处理,离开这台电脑的只有经零知识证明验证过的风险结论。</p>
+
+    <label for="glucose">FASTING GLUCOSE (mg/dL)</label>
+    <input id="glucose" type="number" placeholder="例如 105" />
+    <button id="submitBtn" onclick="analyze()">生成结论 + 健康建议</button>
+
+    <div class="result" id="result">
+      <div class="risk-row">
+        <div class="dot" id="dot"></div>
+        <span class="risk-label" id="riskLabel"></span>
+      </div>
+      <div class="advice" id="advice"></div>
+      <div class="meta" id="meta"></div>
+    </div>
+
+    <div class="privacy-note" id="errorNote" style="display:none; border-color: var(--danger); color: var(--danger);"></div>
+
+    <div class="privacy-note">
+      DATA FLOW: 本地脱敏 → 本地 ZK 电路生成证明(disclose 仅暴露布尔结论)→ 结论提交 Gemini API
+    </div>
+  </div>
+
+<script>
+const API_URL = "http://localhost:8000/api/analyze-report";
+
+async function analyze() {
+  const input = document.getElementById("glucose");
+  const btn = document.getElementById("submitBtn");
+  const resultBox = document.getElementById("result");
+  const errorNote = document.getElementById("errorNote");
+
+  const value = parseFloat(input.value);
+  if (isNaN(value)) {
+    alert("请输入一个数字");
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "计算中(本地生成结论 + 请求 Gemini)…";
+  resultBox.classList.remove("show");
+  errorNote.style.display = "none";
+
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fasting_glucose_mgdl: value }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`后端返回 ${res.status}: ${errText}`);
+    }
+
+    const data = await res.json();
+
+    const dot = document.getElementById("dot");
+    const riskLabel = document.getElementById("riskLabel");
+    const advice = document.getElementById("advice");
+    const meta = document.getElementById("meta");
+
+    if (data.is_high_risk) {
+      dot.className = "dot high";
+      riskLabel.textContent = "HIGH RISK (>100 mg/dL)";
+    } else {
+      dot.className = "dot ok";
+      riskLabel.textContent = "NORMAL RANGE (70–100 mg/dL)";
+    }
+
+    advice.textContent = data.advice;
+    meta.textContent = `proof_verified: ${data.proof_verified} · mode: ${data.proof_mode}`;
+
+    resultBox.classList.add("show");
+  } catch (err) {
+    errorNote.textContent = "请求失败:" + err.message + "(确认 uvicorn 是否已在 localhost:8000 运行)";
+    errorNote.style.display = "block";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "生成结论 + 健康建议";
+  }
+}
+
+document.getElementById("glucose").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") analyze();
+});
+</script>
+</body>
+</html>
