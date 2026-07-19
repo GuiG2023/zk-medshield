@@ -72,6 +72,10 @@ This is not just a block diagram on a whiteboard — the following are actual ve
 - Real proving/verifying keys have been generated: `isHighRisk.prover` (147 KB) and `isHighRisk.verifier` (1 KB). This steep ratio in file sizes is a typical signature of ZK-SNARK proving/verifying key structures (proving keys contain the full constraint system, while verifying keys only require a minimal set of public parameters).
 - In the local devnet environment of the official `example-hello-world` starter repo, we successfully ran the complete witness-to-proof generation pipeline for two test cases: glucose of 105 (resolves to high-risk: true) and 85 (resolves to high-risk: false).
 
+> [!NOTE]
+> The `example-hello-world/` directory in this repository is cloned from the official Midnight starter repository to verify the ZK proof generation pipeline in a local devnet. Apart from our custom contract (`blood_glucose.compact` / `index.ts` setup) and custom testing scenarios (`hw.test.ts`), the boilerplate configuration, workflows, and documentation in that subdirectory are part of the original starter repository template, not our original code.
+
+
 ## Running Locally
 
 See `SETUP.md` for details. Core commands:
