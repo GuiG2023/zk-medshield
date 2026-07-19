@@ -1,0 +1,8 @@
+{
+  "version": 3,
+  "file": "index.js",
+  "sourceRoot": "../../../../",
+  "sources": ["contracts/blood_glucose.compact"],
+  "names": [],
+  "mappings": ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAAA;;;;;;;;;;;;;MAYA,AAAA,UAEC;;;;;;;;;;;;;;;;;;;;;;OAAA;;;;GACA;EAfD;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;GAeC;EARD,AAAA,iBAAmC;;0DAAnC,cAAmC;;;;;;;;;;;;;;GAAA;EAKnC,AAAA,aAEC;UADiB,GAAsB;WAAtB,GAAsB;GACvC;;;;;;;;;;;;;;;;;;;;;;;;;"
+}

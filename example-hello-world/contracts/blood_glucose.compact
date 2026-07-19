@@ -1,0 +1,11 @@
+pragma language_version 0.23;
+
+import CompactStandardLibrary;
+
+export ledger isHigh: Boolean;
+
+witness fastingGlucose(): Uint<16>;
+
+export circuit isHighRisk(): [] {
+  isHigh = disclose(fastingGlucose() > 100);
+}

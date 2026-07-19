@@ -1,0 +1,15 @@
+pragma language_version 0.23;
+
+import CompactStandardLibrary;
+
+// 私有输入(witness):用户真实的空腹血糖值(mg/dL)。
+// 这是一个 witness —— 由 TypeScript driver 在本地私下提供给电路,
+// 原始数值永远不会出现在账本、证明或任何公开输出里。
+witness fastingGlucose(): Uint<16>;
+
+// 这份合约唯一会"公开"的东西:该(私有)数值是否处于高风险区间。
+// disclose() 是必须的 —— 因为比较结果是从 witness(私有)数据推导出来的,
+// Compact 强制你显式声明"我确实要在这里公开这个布尔结论,仅此而已"。
+export circuit isHighRisk(): Boolean {
+  return disclose(fastingGlucose() > 100);
+}

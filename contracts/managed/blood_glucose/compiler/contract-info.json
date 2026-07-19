@@ -1,0 +1,32 @@
+{
+  "compiler-version": "0.31.1",
+  "language-version": "0.23.0",
+  "runtime-version": "0.16.0",
+  "circuits": [
+    {
+      "name": "isHighRisk",
+      "pure": false,
+      "proof": false,
+      "arguments": [
+      ],
+      "result-type": {
+        "type-name": "Boolean"
+      }
+    }
+  ],
+  "witnesses": [
+    {
+      "name": "fastingGlucose",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Uint",
+        "maxval": 65535
+      }
+    }
+  ],
+  "contracts": [
+  ],
+  "ledger": [
+  ]
+}

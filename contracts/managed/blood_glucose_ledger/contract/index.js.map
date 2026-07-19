@@ -1,0 +1,8 @@
+{
+  "version": 3,
+  "file": "index.js",
+  "sourceRoot": "../../../../",
+  "sources": ["contracts/blood_glucose_ledger.compact"],
+  "names": [],
+  "mappings": ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAAA;;;;;;;;;;;;;MAQA,AAAA,UAEC;;;;;;;;;;;;;;;;;;;;;;OAAA;;;;GACA;EAXD;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAIA;;;;;;;;;yEAA8B;;;;;;;GAO7B;EALD,AAAA,iBAAmC;;0DAAnC,cAAmC;;;;;;;;;;;;;;GAAA;EAEnC,AAAA,aAEC;QADmB,GAAsB;UAAxC,KAAM;mBAAY,GAAsB;IAAxC;;;;;;;2HAAA,KAAM;;yEAAA;;GACP;;;;;;;;;;;;;;;;IAND;qCAAA;;;;;;;;;;;0GAA8B;KAAA;;;;;;;;;;"
+}
